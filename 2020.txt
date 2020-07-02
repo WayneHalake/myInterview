@@ -1,0 +1,190 @@
+自我介绍：
+我叫XXX
+先后做过一些公司erp系统、hr系统
+融资保理平台(包括移动端)、
+保险销售平台（h5移动端）、
+消费分期系统(业务对接)、
+工作流平台（activiti6）、
+
+接触过的技术包括最开始的jsp+struts2+bd2
+到springboot+vue+mysql
+uniapp
+
+离职的原因： 技术方面想做后台java、 不想做前端的html5、vue
+
+
+spring的理解：
+轻量级的控制反转和面向切面的容器框架
+IOC:控制反转+DI（依赖注入）
+AOP：代理技术（CGLIB-- 未实现接口的类service、jdk的动态代理 --实现接口的类service）
+理解spring需要明确三个角色：
+	Spring容器 -- 通过配置文件管理Bean的创建、销毁，以及Bean之间的关系，其中包括IOC、DI等相关概念；
+	配置文件 -- 配置文件（xml、注解）提供Bean（对象）之间的关系；
+	Bean（对象）-- 应用程序的业务功能、非业务功能实现
+	
+Spring的启动流程
+	
+SpringMvc的流程
+	1、  用户发送请求至前端控制器DispatcherServlet。
+	2、  DispatcherServlet收到请求调用HandlerMapping处理器映射器。
+	3、 处理器映射器找到具体的处理器(可以根据xml配置、注解进行查找)，生成处理器对象及处理器拦截器(如果有则生成)一并返回给DispatcherServlet。
+	4、  DispatcherServlet调用HandlerAdapter处理器适配器。
+	5、 HandlerAdapter经过适配调用具体的处理器(Controller，也叫后端控制器，我们使用了@Controller注解，添加了@Controller注解注解的类就可以担任控制器（Action）的职责,)。
+	6、  Controller执行完成返回ModelAndView。
+	7、  HandlerAdapter将controller执行结果ModelAndView返回给DispatcherServlet。
+	8、  DispatcherServlet将ModelAndView传给ViewReslover视图解析器。
+	9、  ViewReslover解析后返回具体View。
+	10、DispatcherServlet根据View进行渲染视图（即将模型数据填充至视图中）。
+	11、 DispatcherServlet响应用户。
+
+
+
+Spring中bean的生命周期
+1.spring容器启动 实例化相关的工厂类
+2.执行Bean的构造器
+3.为Bean注入属性
+4.调用Bean的init-method属性指定的方法
+5.容器初始化成功
+6.关闭容器，将调用Bean的destroy-method属性指定的方法
+7.Bean的生命周期结束
+
+
+	
+@RestController
+@RequestMapping("/goodsInfo")
+
+拦截器与过滤器
+拦截器实现HandlerInterceptor接口 preHandle()  postHandle()  afterCompletion()
+拦截的是Action调用对象 通过java反射、和动态代理实现
+
+过滤器实现Filter接口 doFilter() destroy()
+针对的是请求Request和响应Response  通过函数回调实现 依赖与servelt容器
+
+pagehelper实现原理
+修改了最终执行的sql
+1.获取pageNo，pageSize参数
+2.参数保存在ThreadLocal中--可以使每个线程独立开来，参数互不影响
+3.pagehelper实现了mybatis的Interceptor的接口 -- 执行sql
+4.在sql（查询的）执行过程中，执行两次 一次统计数量 一次进行数据查询
+
+
+springCloud五个组件
+1.注册中心  eureka、consul、zookeeper、 nacos（注册中心、配置中心） 服务注册
+2.负载均衡 ribbon \ feign  
+3.断路器  Hystrix  服务熔断
+4.网关  zuul  提供一致性调用ip地址
+5.配置中心  springCloud configurtion  服务配置文件管理
+
+
+多线程、锁
+Synchronized 
+	对象锁、类锁
+	修饰普通方法 使用对象锁工作
+	修饰static方法 依靠类锁工作
+	同步方法块：锁是括号里面的对象，对给定对象枷锁，进入同步代码块前，需要先获取给定对象的锁
+	
+ReentrantLock  乐观锁
+ReadWriteLock  在读操作时为独占锁、在写操作是是共享锁
+Volatile 关键字  线程可视化
+CountDownLatch  主要用来解决一个线程等待多个线程的场景，可以类比旅游团团长要等待所有的游客到齐才能去下一个景点；
+CyclicBarrier 计数器是可以循环利用的，而且具备自动重置的功能，一旦计数器减到0会自动重置到你设置的初始值
+
+
+线程安全对象
+Vector
+CopyOnWriteArrayList
+CopyOnWriteArraySet
+ConCurrentHashMap
+ConCurrentLinkedDeque
+ConCurrentLinkedQueue
+StringBuffer  Synchronized实现
+
+
+
+sql优化 -- 符合索引使用规则
+	应用优化、缓存优化、使用索引
+sql索引
+	索引使用：  1.最左原则
+				2.索引列避免运算操作
+				3.索引字符串加‘’（单引号）
+				4.覆盖索引
+				5.使用or索引失效  eg：or后面的的字段没有索引、该查询索引失效
+					建议使用union 或是union all
+	
+Btree  数据包括在叶子节点和非叶子节点上 
+B+tree  数据全部在叶子节点上  叶子节点为链表 （InnoDB）
+
+叶子存储的是主键KEY,拿到主键KEY后，InnoDB才会去主键索引树里根据刚在 user_name 索引树找到的主键 KEY 查找到对应的数据。
+
+问题来了，为什么 InnoDB 只在主键索引树的叶子节点存储了具体数据，但是其他索引树却不存具体数据呢，而要多此一举先找到主键，再在主键索引树找到对应的数据呢?
+
+其实很简单，因为 InnoDB 需要节省存储空间。一个表里可能有很多个索引，InnoDB 都会给每个加了索引的字段生成索引树，如果每个字段的索引树都存储了具体数据，那么这个表的索引数据文件就变得非常巨大（数据极度冗余了）。从节约磁盘空间的角度来说，真的没有必要每个字段索引树都存具体数据，通过这种看似“多此一举”的步骤，在牺牲较少查询的性能下节省了巨大的磁盘空间，这是非常有值得的。
+
+定位低效的sql
+	1.慢查询日志
+	2.show processList 实时查询
+	3.explain  sql语句分析
+
+	
+分表  
+	
+
+
+mybatis xml 攻击 
+
+
+
+mybatis 源码
+
+public static void main(String[] args) {
+		InputStream inputStream = Resources.getResourceAsStream("mybatis-config.xml");
+		SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(inputStream);
+		SqlSession sqlSession = factory.openSession();
+		// String name = "tom";
+		// List<User> list = sqlSession.selectList("com.demo.mapper.UserMapper.getUserByName",params);
+		
+		//这里不再调用SqlSession 的api，而是获得了接口对象，调用接口中的方法。
+		UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+		List<User> list = mapper.getUserByName("tom");
+}
+mybatis实现步骤
+1.创建SqlSessionFactoryBuilder对象，调用build(inputstream)方法读取并解析配置文件，返回SqlSessionFactory对象
+2.由SqlSessionFactory创建SqlSession 对象，没有手动设置的话事务默认开启
+// 3.调用SqlSession中的api，传入Statement Id和参数，内部进行复杂的处理，最后调用jdbc执行SQL语句，封装结果返回。
+3.使用SqlSession.getMapper()获取接口对象
+4.调用接口方法
+	解析配置文件(mybatis-config.xml)-->创建Configuration对象-->获取SqlSession对象
+	
+	介绍一下MappedStatement ：
+		作用： MappedStatement与Mapper配置文件中的一个select/update/insert/delete节点相对应。mapper中配置的标签都被封装到了此对象中，主要用途是描述一条SQL语句。
+		**初始化过程：**回顾刚开始介绍的加载配置文件的过程中，会对mybatis-config.xml中的各个标签都进行解析，其中有 mappers标签用来引入mapper.xml文件或者配置mapper接口的目录。
+		
+		<select id="getUser" resultType="user" >
+			select * from user where id=#{id}
+		</select>
+		这样的一个select标签会在初始化配置文件时被解析封装成一个MappedStatement对象，然后存储在Configuration对象的mappedStatements属性中，mappedStatements 是一个HashMap，存储时key = 全限定类名 + 方法名，value = 对应的MappedStatement对象。
+		
+	通常的Mapper接口我们都没有实现的方法却可以使用，是为什么呢？答案很简单 动态代理
+
+
+Dubbo相关问题
+	1.服务提供者  服务提供者将服务注册到注册中心
+	2.服务消费者  服务消费者根据注册中心提供的服务列表，选择服务，将远程服务提供者本地化，然后调用相关接口
+	3.注册中心  服务提供者将服务注册到注册中心，注册中心提供服务列表给服务提供者。
+	4.监控中心  统计服务的调用次数和调用时间的监控中心 检测服务心跳
+	
+	先启动注册中心-->服务提供者-->服务消费者
+
+	
+java 动态代理和反射	
+
+linux 自动化部署
+
+spring单例修改为多例  单例和多例的使用场景
+
+
+
+
+
+
+

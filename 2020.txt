@@ -22,7 +22,7 @@ AOP：代理技术（CGLIB-- 未实现接口的类service、jdk的动态代理 -
 	配置文件 -- 配置文件（xml、注解）提供Bean（对象）之间的关系；
 	Bean（对象）-- 应用程序的业务功能、非业务功能实现
 	
-Spring的启动流程
+Spring的启动流程  参考：https://my.oschina.net/u/4393418/blog/3251345
 
 	Bean的生命周期  Bean定义的加载-->实例化-->初始化-->容器关闭-->销毁
 
@@ -34,7 +34,7 @@ Spring的启动流程
 	5.完成refresh()  包括清除资源缓存、初始化生命周期处理器、发布相关广播
 
 	其中的具体流程：
-	1.ClassPathXmlApplicationContext通过加载配置文件完成Spring环境的初始化 
+	1.ClassPathXmlApplicationContext通过加载配置文件完成Spring环境的初始化  ClassPathXmlApplicationContext构造方法中调用了refresh()
 	2.AbstractApplicationContext.refresh()代码如下
 	
 		public void refresh() throws BeansException, IllegalStateException {
@@ -114,25 +114,128 @@ Spring的启动流程
 
 
 
-Springboot的启动流程
+Springboot的启动流程  参考：https://my.oschina.net/u/4391973/blog/3237675
+	其大致的流程和Spring启动的流程差不多
+	1.加载配置文件（SpringBoot的自动配置，自动加载默认的配置）通过注解的方式实现
+	2.准备环境变量（application.properties）
+	3.创建容器，根据不同环境创建不同类型的applicationContext容器
+	4.加载FailureAnalyzers对象，用于报告SpringBoot启动过程中的异常
+	5.容器初始化  
+	6.刷新容器  Spring启动中的refresh()方法
+	7.刷新容器的后置处理逻辑  完成这一步的时候，容器就已经启动完毕了
+	8.打印启动日志
+	9.发送ApplicationStartedEvent事件，标志spring容器已经刷新，此时所有的bean实例都已经加载完毕
+	10.调用ApplicationRunner和CommandLineRunner的run方法，实现spring容器启动后需要做的一些东西比如加载一些业务数据等
 
+
+	启动代码：
+		@SpringBootApplication
+		public class JiaximoApiApplication {
+			public static void main(String[] args) {
+				SpringApplication.run(JiaximoApiApplication.class, args);
+			}
+
+		}
+
+	1.从@SpringBootApplication注解开始
+		以下是@SpringBootApplication注解的相关代码
+			@Target(ElementType.TYPE)
+			@Retention(RetentionPolicy.RUNTIME)
+			@Documented
+			@Inherited
+			@SpringBootConfiguration //表示被标记的类为配置类
+			@EnableAutoConfiguration //开启SpringBoot的自动配置、加载默认配置
+			@ComponentScan(excludeFilters = {
+					@Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+					@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+			public @interface SpringBootApplication {
+				......
+				}
+
+	2.SpringApplication的构造方法  容器环境准备
+		/**
+	 * Create a new {@link SpringApplication} instance. The application context will load
+	 * beans from the specified primary sources (see {@link SpringApplication class-level}
+	 * documentation for details. The instance can be customized before calling
+	 * {@link #run(String...)}.
+	 * @param resourceLoader the resource loader to use
+	 * @param primarySources the primary bean sources
+	 * @see #run(Class, String[])
+	 * @see #setSources(Set)
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		this.resourceLoader = resourceLoader;
+		Assert.notNull(primarySources, "PrimarySources must not be null");
+		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		this.mainApplicationClass = deduceMainApplicationClass();
+	}
+		
+	3.SpringApplication的run方法   SpringBoot的启动步骤
+	/**
+	 * Run the Spring application, creating and refreshing a new
+	 * {@link ApplicationContext}.
+	 * @param args the application arguments (usually passed from a Java main method)
+	 * @return a running {@link ApplicationContext}
+	 */
+	public ConfigurableApplicationContext run(String... args) {
+		StopWatch stopWatch = new StopWatch();
+		stopWatch.start();
+		ConfigurableApplicationContext context = null;
+		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		configureHeadlessProperty();
+		SpringApplicationRunListeners listeners = getRunListeners(args);
+		listeners.starting();
+		try {
+			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+			configureIgnoreBeanInfo(environment);
+			Banner printedBanner = printBanner(environment);
+			context = createApplicationContext();
+			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
+					new Class[] { ConfigurableApplicationContext.class }, context);
+			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			refreshContext(context);
+			afterRefresh(context, applicationArguments);
+			stopWatch.stop();
+			if (this.logStartupInfo) {
+				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
+			}
+			listeners.started(context);
+			callRunners(context, applicationArguments);
+		}
+		catch (Throwable ex) {
+			handleRunFailure(context, ex, exceptionReporters, listeners);
+			throw new IllegalStateException(ex);
+		}
+
+		try {
+			listeners.running(context);
+		}
+		catch (Throwable ex) {
+			handleRunFailure(context, ex, exceptionReporters, null);
+			throw new IllegalStateException(ex);
+		}
+		return context;
+	}
 
 
 
 SpringMvc的流程
-	1、  用户发送请求至前端控制器DispatcherServlet。
-	2、  DispatcherServlet收到请求调用HandlerMapping处理器映射器。
+	1、 用户发送请求至前端控制器DispatcherServlet。
+	2、 DispatcherServlet收到请求调用HandlerMapping处理器映射器。
 	3、 处理器映射器找到具体的处理器(可以根据xml配置、注解进行查找)，生成处理器对象及处理器拦截器(如果有则生成)一并返回给DispatcherServlet。
-	4、  DispatcherServlet调用HandlerAdapter处理器适配器。
+	4、 DispatcherServlet调用HandlerAdapter处理器适配器。
 	5、 HandlerAdapter经过适配调用具体的处理器(Controller，也叫后端控制器，我们使用了@Controller注解，添加了@Controller注解注解的类就可以担任控制器（Action）的职责,)。
-	6、  Controller执行完成返回ModelAndView。
-	7、  HandlerAdapter将controller执行结果ModelAndView返回给DispatcherServlet。
-	8、  DispatcherServlet将ModelAndView传给ViewReslover视图解析器。
-	9、  ViewReslover解析后返回具体View。
+	6、 Controller执行完成返回ModelAndView。
+	7、 HandlerAdapter将controller执行结果ModelAndView返回给DispatcherServlet。
+	8、 DispatcherServlet将ModelAndView传给ViewReslover视图解析器。
+	9、 ViewReslover解析后返回具体View。
 	10、DispatcherServlet根据View进行渲染视图（即将模型数据填充至视图中）。
-	11、 DispatcherServlet响应用户。
-
-
+	11、DispatcherServlet响应用户。
 
 Spring中bean的生命周期
 1.spring容器启动 实例化相关的工厂类
@@ -143,11 +246,19 @@ Spring中bean的生命周期
 6.关闭容器，将调用Bean的destroy-method属性指定的方法
 7.Bean的生命周期结束
 
-
+spring单例修改为多例  
+	spring默认为单例模式，如果需要将单例模式修改为多例模式的话，使用@Scope注解，value=‘prototype’即可；
 	
-@RestController
-@RequestMapping("/goodsInfo")
+	关于@Scope注解  参考：https://my.oschina.net/u/2349331/blog/410221   https://my.oschina.net/xinxingegeya/blog/397513
+		@Scope('singleton')  // 单例
+		@Scope('prototype') //多例
 
+单例和多例的使用场景
+	之所以用单例，是因为没必要每个请求都新建一个对象，这样子既浪费CPU又浪费内存；
+	之所以用多例，是为了防止并发问题；即一个请求改变了对象的状态，此时对象又处理另一个请求，而之前请求对对象状态的改变导致了对象对另一个请求做了错误的处理；
+	用单例和多例的标准只有一个：
+	当对象含有可改变的状态时（更精确的说就是在实际应用中该状态会改变），则多例，否则单例；
+	
 拦截器与过滤器
 拦截器实现HandlerInterceptor接口 preHandle()  postHandle()  afterCompletion()
 拦截的是Action调用对象 通过java反射、和动态代理实现
@@ -195,7 +306,6 @@ ConCurrentLinkedQueue
 StringBuffer  Synchronized实现
 
 
-
 sql优化 -- 符合索引使用规则
 	应用优化、缓存优化、使用索引
 sql索引
@@ -210,9 +320,7 @@ Btree  数据包括在叶子节点和非叶子节点上
 B+tree  数据全部在叶子节点上  叶子节点为链表 （InnoDB）
 
 叶子存储的是主键KEY,拿到主键KEY后，InnoDB才会去主键索引树里根据刚在 user_name 索引树找到的主键 KEY 查找到对应的数据。
-
 问题来了，为什么 InnoDB 只在主键索引树的叶子节点存储了具体数据，但是其他索引树却不存具体数据呢，而要多此一举先找到主键，再在主键索引树找到对应的数据呢?
-
 其实很简单，因为 InnoDB 需要节省存储空间。一个表里可能有很多个索引，InnoDB 都会给每个加了索引的字段生成索引树，如果每个字段的索引树都存储了具体数据，那么这个表的索引数据文件就变得非常巨大（数据极度冗余了）。从节约磁盘空间的角度来说，真的没有必要每个字段索引树都存具体数据，通过这种看似“多此一举”的步骤，在牺牲较少查询的性能下节省了巨大的磁盘空间，这是非常有值得的。
 
 定位低效的sql
@@ -220,7 +328,7 @@ B+tree  数据全部在叶子节点上  叶子节点为链表 （InnoDB）
 	2.show processList 实时查询
 	3.explain  sql语句分析
 
-	
+
 分表  
 	
 
@@ -275,7 +383,7 @@ java 动态代理和反射
 
 linux 自动化部署
 
-spring单例修改为多例  单例和多例的使用场景
+
 
 
 

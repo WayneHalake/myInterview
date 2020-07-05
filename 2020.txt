@@ -23,7 +23,102 @@ AOP：代理技术（CGLIB-- 未实现接口的类service、jdk的动态代理 -
 	Bean（对象）-- 应用程序的业务功能、非业务功能实现
 	
 Spring的启动流程
+
+	Bean的生命周期  Bean定义的加载-->实例化-->初始化-->容器关闭-->销毁
+
+	Spring基本流程
+	1.Spring加载配置文件，初始化Spring容器（ApplicationContext）相关信息
+	2.设置BeanFactory的基本信息
+	3.将相关Bean注册到BeanFactory中（该过程中存在相关的Bean的实例化和初始化、执行）
+	4.BeanFactory实例化已被注册但是没有实例化的Bean
+	5.完成refresh()  包括清除资源缓存、初始化生命周期处理器、发布相关广播
+
+	其中的具体流程：
+	1.ClassPathXmlApplicationContext通过加载配置文件完成Spring环境的初始化 
+	2.AbstractApplicationContext.refresh()代码如下
 	
+		public void refresh() throws BeansException, IllegalStateException {
+			synchronized (this.startupShutdownMonitor) {
+				// Prepare this context for refreshing.
+				// 环境准备
+				prepareRefresh();
+
+				// Tell the subclass to refresh the internal bean factory.
+				// 重置AbstractApplicationContext持有的BeanFactory 完成Bean定义的加载，没有实例化
+				ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+
+				// Prepare the bean factory for use in this context.
+				// 设置BeanFactory的基础属性
+				prepareBeanFactory(beanFactory);
+
+				try {
+					// Allows post-processing of the bean factory in context subclasses.
+					//修改bean的定义或增加自定义的Bean
+					postProcessBeanFactory(beanFactory);
+
+					// Invoke factory processors registered as beans in the context.
+					//在Spring容器中找出实现了BeanFactoryPostProcessor接口的Bean并执行
+					invokeBeanFactoryPostProcessors(beanFactory);
+
+					// Register bean processors that intercept bean creation.
+					//从Spring容器中找出的BeanPostProcessor接口的Bean，并添加到BeanFactory内部维护的List属性中，以便后续Bean被实例化的时候调用这个BeanPostProcessor进行回调处理
+					registerBeanPostProcessors(beanFactory);
+
+					// Initialize message source for this context.
+					// Spring容器初始化一些国际化相关属性
+					initMessageSource();
+
+					// Initialize event multicaster for this context.
+					// Spring容器中初始化事件事件广播起对象
+					initApplicationEventMulticaster();
+
+					// Initialize other special beans in specific context subclasses.
+					//模板方法，可用于refresh动作的扩展，默认为空实现。在SpringBoot中主要用于启动内嵌的web服务器。
+					onRefresh();
+
+					// Check for listener beans and register them.
+					//找出系统中的ApplicationListener对象，注册到时间广播器中
+					registerListeners();
+
+					// Instantiate all remaining (non-lazy-init) singletons.
+					// 例化BeanFactory中已经被注册但是未实例化的所有实例(懒加载的不需要实例化)，主要操作是BeanFacotry的preInstantiateSingletons方法
+					finishBeanFactoryInitialization(beanFactory);
+
+					// Last step: publish corresponding event.
+					finishRefresh();
+				}
+
+				catch (BeansException ex) {
+					if (logger.isWarnEnabled()) {
+						logger.warn("Exception encountered during context initialization - " +
+								"cancelling refresh attempt: " + ex);
+					}
+
+					// Destroy already created singletons to avoid dangling resources.
+					destroyBeans();
+
+					// Reset 'active' flag.
+					cancelRefresh(ex);
+
+					// Propagate exception to caller.
+					throw ex;
+				}
+
+				finally {
+					// Reset common introspection caches in Spring's core, since we
+					// might not ever need metadata for singleton beans anymore...
+					resetCommonCaches();
+				}
+			}
+		}
+
+
+
+Springboot的启动流程
+
+
+
+
 SpringMvc的流程
 	1、  用户发送请求至前端控制器DispatcherServlet。
 	2、  DispatcherServlet收到请求调用HandlerMapping处理器映射器。
